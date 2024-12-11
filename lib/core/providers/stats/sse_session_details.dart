@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:cpu_management/core/api/api_urls.dart';
 import 'package:cpu_management/core/constants/enums.dart';
 import 'package:cpu_management/core/models/stats/session_stat.dart';
+import 'package:cpu_management/core/repository/stats/stats_repository.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive/hive.dart';
@@ -13,28 +14,33 @@ class StationStatsState {
   final List<StationData> stations;
   final bool isLoading;
   final String? error;
+  final List<StationData> currentStatsSearched;
 
   StationStatsState({
     required this.stations,
     this.isLoading = false,
     this.error,
+    required this.currentStatsSearched,
   });
 
   StationStatsState copyWith({
     List<StationData>? stations,
     bool? isLoading,
     String? error,
+    List<StationData>? currentStatsSearched,
   }) {
     return StationStatsState(
       stations: stations ?? this.stations,
       isLoading: isLoading ?? this.isLoading,
       error: error,
+      currentStatsSearched: currentStatsSearched ?? this.currentStatsSearched,
     );
   }
 }
 
 class StationStatsNotifier extends StateNotifier<StationStatsState> {
-  StationStatsNotifier() : super(StationStatsState(stations: [])) {
+  StationStatsNotifier()
+      : super(StationStatsState(stations: [], currentStatsSearched: [])) {
     fetchStationStats();
   }
 
@@ -42,6 +48,19 @@ class StationStatsNotifier extends StateNotifier<StationStatsState> {
   http.Client? _client;
   Timer? _reconnectTimer;
   bool _isSSE = false;
+  StatsRepository statsRepository = StatsRepository();
+
+  Future<void> fetchStationOverallStats({
+    String? station,
+    DurationType? type,
+    int? startTime,
+    int? endTime,
+  }) async {
+    var res = await statsRepository.getCPOStats(station: station, type: type, startTime: startTime, endTime: endTime);
+    if(res.data != null){
+      state = state.copyWith(currentStatsSearched: res.data);
+    }
+  }
 
   Future<void> fetchStationStats({
     String? station,

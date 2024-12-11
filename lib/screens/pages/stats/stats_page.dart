@@ -19,13 +19,19 @@ class _StatsPageState extends ConsumerState<StatsPage> {
   DateTime? endDate;
 
   @override
+  void initState() {
+    ref.read(stationStatsProvider.notifier).fetchStationOverallStats();
+    super.initState();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Consumer(builder: (context, ref, child) {
       final stationState = ref.watch(stationStatsProvider);
 
       return RefreshIndicator(
         onRefresh: () async {
-          await ref.read(stationStatsProvider.notifier).fetchStationStats();
+          await ref.read(stationStatsProvider.notifier).fetchStationOverallStats();
         },
         child: Scaffold(
           appBar: AppBar(
@@ -52,7 +58,7 @@ class _StatsPageState extends ConsumerState<StatsPage> {
                             selectedStation = value;
                             ref
                                 .read(stationStatsProvider.notifier)
-                                .fetchStationStats(station: selectedStation);
+                                .fetchStationOverallStats(station: selectedStation);
                           });
                         },
                         items: stationState.stations
@@ -120,7 +126,7 @@ class _StatsPageState extends ConsumerState<StatsPage> {
             const SizedBox(height: 16),
             ElevatedButton.icon(
               onPressed: () {
-                ref.read(stationStatsProvider.notifier).fetchStationStats();
+                ref.read(stationStatsProvider.notifier).fetchStationOverallStats();
               },
               icon: const Icon(Icons.refresh),
               label: const Text('Retry'),
@@ -130,7 +136,7 @@ class _StatsPageState extends ConsumerState<StatsPage> {
       );
     }
 
-    if (stationState.stations.isEmpty) {
+    if (stationState.currentStatsSearched.isEmpty) {
       return const Center(
         child: Text('No stats available'),
       );
@@ -146,9 +152,9 @@ class _StatsPageState extends ConsumerState<StatsPage> {
             child: ListView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              itemCount: stationState.stations.length,
+              itemCount: stationState.currentStatsSearched.length,
               itemBuilder: (context, index) {
-                final stationData = stationState.stations[index];
+                final stationData = stationState.currentStatsSearched[index];
                 return _buildStationStatsCard(stationData);
               },
             ),
