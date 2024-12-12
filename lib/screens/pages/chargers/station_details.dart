@@ -1,78 +1,161 @@
 import 'package:cpu_management/core/constants/colors.dart';
+import 'package:cpu_management/core/constants/images.dart';
 import 'package:cpu_management/core/models/chargers/charging_station.dart';
 import 'package:cpu_management/screens/widget/connector_info_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class ChargingDetailsCard extends ConsumerStatefulWidget {
+class ChargingDetailsCard extends ConsumerWidget {
   final ChargingStation station;
-  const ChargingDetailsCard({super.key, required this.station});
+
+  const ChargingDetailsCard({
+    Key? key,
+    required this.station,
+  }) : super(key: key);
+
+  List<Charger> getSortedChargers(List<Charger> chargers) {
+    return List<Charger>.from(chargers)
+      ..sort((a, b) {
+        final priorities = {
+          'charging': 0,
+          'available': 1,
+          'offline': 2,
+          'faulty': 3,
+        };
+        return (priorities[a.status.toLowerCase()] ?? 4)
+            .compareTo(priorities[b.status.toLowerCase()] ?? 4);
+      });
+  }
 
   @override
-  // ignore: library_private_types_in_public_api
-  _ChargingDetailsCardState createState() => _ChargingDetailsCardState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final sortedChargers = getSortedChargers(station.chargers);
 
-class _ChargingDetailsCardState extends ConsumerState<ChargingDetailsCard> {
-  @override
-  Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey[100],
       appBar: AppBar(
-        title: Text(widget.station.name),
         backgroundColor: Colors.white,
-      ),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          // Write your refresh logic here
-          await Future.delayed(const Duration(seconds: 2));
-        },
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          child: Column(
-            children: [
-              _buildChargersList(widget.station.chargers),
-              // You can add more sections below the chargers list if needed
-            ],
-          ),
+        elevation: 1,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: ConstantColors.iconBlack),
+          onPressed: () => Navigator.pop(context),
         ),
+        title: Row(
+          children: [
+            Image.asset(ConstantImages.logo, height: 24, width: 31),
+            const SizedBox(width: 9),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  station.name,
+                  style: const TextStyle(
+                    color: ConstantColors.iconBlack,
+                    fontSize: 12,
+                  ),
+                ),
+                const Text(
+                  "Charging Station",
+                  style: TextStyle(
+                    color: ConstantColors.iconBlack,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+      body: Column(
+        children: [
+          _buildStatusSummary(sortedChargers),
+          Expanded(
+            child: _buildChargersList(sortedChargers),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildChargersList(List<Charger> chargers) {
+  Widget _buildStatusSummary(List<Charger> chargers) {
+    final statusCounts = {
+      'charging': 0,
+      'available': 0,
+      'offline': 0,
+      'faulty': 0,
+    };
+
+    for (var charger in chargers) {
+      final status = charger.status.toLowerCase();
+      statusCounts[status] = (statusCounts[status] ?? 0) + 1;
+    }
+
     return Container(
       padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.grey[50],
-        borderRadius: const BorderRadius.vertical(
-          bottom: Radius.circular(12),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Chargers',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 12),
-          ListView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: chargers.length,
-            itemBuilder: (context, index) {
-              final charger = chargers[index];
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 8.0),
-                child: ConnectorInfoCard(connector: charger),
-              );
-            },
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          _buildStatusItem('Charging', statusCounts['charging']!,
+              ConstantColors.primaryColor),
+          _buildStatusItem('Available', statusCounts['available']!,
+              ConstantColors.availableGreen),
+          _buildStatusItem(
+              'Offline', statusCounts['offline']!, ConstantColors.cC),
+          _buildStatusItem(
+              'Faulty', statusCounts['faulty']!, ConstantColors.faultyOrange),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusItem(String label, int count, Color color) {
+    return Column(
+      children: [
+        Text(
+          count.toString(),
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 12,
+            color: ConstantColors.black4,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildChargersList(List<Charger> chargers) {
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      itemCount: chargers.length,
+      itemBuilder: (context, index) {
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: ConnectorInfoCard(
+            connector: chargers[index],
+            onSelected: false,
+          ),
+        );
+      },
     );
   }
 }

@@ -40,7 +40,7 @@ dependencies:
   image: ^4.2.0
   image_cropper: ^8.0.2
   timer_count_down: ^2.2.2
-  fl_chart: ^0.55.2
+  fl_chart: ^0.66.1
   # http: ^1.0.0
   # camera: ^0.10.0+1
   # flutter_image_compress: ^1.1.0

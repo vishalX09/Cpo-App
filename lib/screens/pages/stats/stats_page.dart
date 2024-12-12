@@ -1,9 +1,10 @@
 import 'package:cpu_management/core/constants/enums.dart';
 import 'package:cpu_management/core/models/stats/session_stat.dart';
+import 'package:cpu_management/core/providers/global_provider.dart';
 import 'package:cpu_management/core/providers/stats/sse_session_details.dart';
-import 'package:cpu_management/core/providers/stats/stats_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fl_chart/fl_chart.dart';
 
 class StatsPage extends ConsumerStatefulWidget {
   const StatsPage({super.key});
@@ -13,105 +14,241 @@ class StatsPage extends ConsumerStatefulWidget {
 }
 
 class _StatsPageState extends ConsumerState<StatsPage> {
-  String? selectedStation;
-  String? selectedDateRange;
-  DateTime? startDate;
-  DateTime? endDate;
-
   @override
   void initState() {
-    ref.read(stationStatsProvider.notifier).fetchStationOverallStats();
     super.initState();
+    ref.read(stationStatsProvider.notifier).fetchStationStats();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Consumer(builder: (context, ref, child) {
-      final stationState = ref.watch(stationStatsProvider);
+    final stationState = ref.watch(stationStatsProvider);
 
-      return RefreshIndicator(
-        onRefresh: () async {
-          await ref.read(stationStatsProvider.notifier).fetchStationOverallStats();
-        },
-        child: Scaffold(
-          appBar: AppBar(
-            backgroundColor: Colors.white,
-            title: const Center(
-              child: Text(
-                "Overview Stats",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
-              ),
-            ),
+    return RefreshIndicator(
+      onRefresh: () async {
+        await ref.read(stationStatsProvider.notifier).fetchStationStats();
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          title: const Text(
+            "Overview Stats",
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
           ),
-          body: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        value: selectedStation,
-                        hint: const Text('Select Station'),
-                        onChanged: (value) {
-                          setState(() {
-                            selectedStation = value;
-                            ref
-                                .read(stationStatsProvider.notifier)
-                                .fetchStationOverallStats(station: selectedStation);
-                          });
-                        },
-                        items: stationState.stations
+          centerTitle: true,
+        ),
+        body: Column(
+          children: [
+            // Dropdowns
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  // Station Dropdown
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      value: stationState.selectedStation,
+                      hint: const Text('Select Station'),
+                      decoration: const InputDecoration(
+                        contentPadding:
+                            EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        border: OutlineInputBorder(),
+                      ),
+                      onChanged: (value) {
+                        ref
+                            .read(stationStatsProvider.notifier)
+                            .updateStation(value);
+                      },
+                      items: [
+                        const DropdownMenuItem<String>(
+                          value: null,
+                          child: Text('All Stations'),
+                        ),
+                        ...stationState.stations
                             .map((station) => DropdownMenuItem<String>(
                                   value: station.station.id,
                                   child: Text(station.station.name),
-                                ))
-                            .toList(),
-                      ),
+                                )),
+                      ],
                     ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        value: selectedDateRange,
-                        hint: const Text('Select Date Range'),
-                        onChanged: (value) {
-                          setState(() {
-                            selectedDateRange = value;
-                            if (value == 'Custom') {
-                              // Show date picker dialogs
-                            } else {
-                              startDate = null;
-                              endDate = null;
-                            }
-                          });
-                        },
-                        items: DurationType.values
-                            .map((range) => DropdownMenuItem<String>(
-                                  value: range.value,
-                                  child: Text(range.value),
-                                ))
-                            .toList(),
+                  ),
+                  const SizedBox(width: 16),
+                  // Date Range Dropdown
+                  Expanded(
+                    child: DropdownButtonFormField<DurationType>(
+                      value: stationState.selectedDateRange,
+                      hint: const Text('Select Date Range'),
+                      decoration: const InputDecoration(
+                        contentPadding:
+                            EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        border: OutlineInputBorder(),
                       ),
+                      onChanged: (value) async {
+                        if (value == DurationType.customRange) {
+                          final picked = await showDateRangePicker(
+                            context: context,
+                            firstDate: DateTime(2020),
+                            lastDate: DateTime.now(),
+                          );
+                          if (picked != null) {
+                            ref
+                                .read(stationStatsProvider.notifier)
+                                .updateDateRange(
+                                  value!,
+                                  start: picked.start,
+                                  end: picked.end,
+                                );
+                          }
+                        } else if (value != null) {
+                          ref
+                              .read(stationStatsProvider.notifier)
+                              .updateDateRange(value);
+                        }
+                      },
+                      items: DurationType.values
+                          .map((type) => DropdownMenuItem<DurationType>(
+                                value: type,
+                                child: Text(type.value),
+                              ))
+                          .toList(),
                     ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Main Content
+            Expanded(
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Column(
+                  children: [
+                    // Stats Cards
+                    _buildStatsCards(stationState),
+
+                    // Graph Section
+                    if (stationState.barGroups.isNotEmpty) ...[
+                      const Padding(
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            'Hourly Statistics',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                      _buildGraph(stationState),
+                    ],
                   ],
                 ),
               ),
-              Expanded(
-                child: _buildBody(stationState),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
-      );
-    });
+      ),
+    );
   }
 
-  Widget _buildBody(StationStatsState stationState) {
-    if (stationState.isLoading) {
+  Widget _buildGraph(StationStatsState state) {
+    return Container(
+      height: 300,
+      padding: const EdgeInsets.all(16),
+      child: BarChart(
+        BarChartData(
+          alignment: BarChartAlignment.spaceAround,
+          maxY: state.maxEarnings > state.maxEnergy
+              ? state.maxEarnings
+              : state.maxEnergy,
+          barTouchData: BarTouchData(
+            touchTooltipData: BarTouchTooltipData(
+              tooltipBgColor: Colors.grey[800]!,
+              getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                final hourlyData = state.hourlyData[group.x.toInt()];
+                final value =
+                    rodIndex == 0 ? hourlyData.earnings : hourlyData.energy;
+                final label = rodIndex == 0
+                    ? 'Earnings: ₹${value.toStringAsFixed(2)}'
+                    : 'Energy: ${value.toStringAsFixed(2)} kWh';
+                return BarTooltipItem(
+                  label,
+                  const TextStyle(color: Colors.white),
+                );
+              },
+            ),
+          ),
+          titlesData: FlTitlesData(
+            show: true,
+            bottomTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                getTitlesWidget: (value, meta) {
+                  if (value.toInt() >= 0 &&
+                      value.toInt() < state.hourlyData.length) {
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(
+                        state.hourlyData[value.toInt()].hour,
+                        style: const TextStyle(fontSize: 10),
+                      ),
+                    );
+                  }
+                  return const SizedBox();
+                },
+              ),
+            ),
+            leftTitles: AxisTitles(
+              axisNameWidget: const Text('Earnings (₹)'),
+              sideTitles: SideTitles(
+                showTitles: true,
+                reservedSize: 40,
+                getTitlesWidget: (value, meta) {
+                  return Text(
+                    '₹${value.toInt()}',
+                    style: const TextStyle(fontSize: 10),
+                  );
+                },
+              ),
+            ),
+            rightTitles: AxisTitles(
+              axisNameWidget: const Text('Energy (kWh)'),
+              sideTitles: SideTitles(
+                showTitles: true,
+                reservedSize: 40,
+                getTitlesWidget: (value, meta) {
+                  return Text(
+                    '${value.toInt()}',
+                    style: const TextStyle(fontSize: 10),
+                  );
+                },
+              ),
+            ),
+            topTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
+          ),
+          gridData: FlGridData(
+            show: true,
+            drawVerticalLine: false,
+            horizontalInterval: 20,
+          ),
+          borderData: FlBorderData(show: true),
+          barGroups: state.barGroups,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatsCards(StationStatsState state) {
+    if (state.isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
 
-    if (stationState.error != null) {
+    if (state.error != null) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -119,48 +256,26 @@ class _StatsPageState extends ConsumerState<StatsPage> {
             const Icon(Icons.error_outline, color: Colors.red, size: 48),
             const SizedBox(height: 16),
             Text(
-              'Error: ${stationState.error}',
+              'Error: ${state.error}',
               textAlign: TextAlign.center,
               style: const TextStyle(color: Colors.red),
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton.icon(
-              onPressed: () {
-                ref.read(stationStatsProvider.notifier).fetchStationOverallStats();
-              },
-              icon: const Icon(Icons.refresh),
-              label: const Text('Retry'),
             ),
           ],
         ),
       );
     }
 
-    if (stationState.currentStatsSearched.isEmpty) {
-      return const Center(
-        child: Text('No stats available'),
-      );
+    if (state.currentStatsSearched.isEmpty) {
+      return const Center(child: Text('No stats available'));
     }
 
-    return SingleChildScrollView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      child: Column(
-        children: [
-          const SizedBox(height: 4),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: stationState.currentStatsSearched.length,
-              itemBuilder: (context, index) {
-                final stationData = stationState.currentStatsSearched[index];
-                return _buildStationStatsCard(stationData);
-              },
-            ),
-          ),
-        ],
-      ),
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: state.currentStatsSearched.length,
+      itemBuilder: (context, index) {
+        return _buildStationStatsCard(state.currentStatsSearched[index]);
+      },
     );
   }
 
@@ -174,7 +289,7 @@ class _StatsPageState extends ConsumerState<StatsPage> {
     }
 
     return Card(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -243,17 +358,22 @@ class _StatsPageState extends ConsumerState<StatsPage> {
           ),
         ),
         const SizedBox(height: 8),
-        _buildSessionTypePill("App", data.totalAppSessions),
-        _buildSessionTypePill("Direct", data.totalDirectSessions),
-        _buildSessionTypePill("Web", data.totalWebSessions),
-        _buildSessionTypePill("Hub", data.totalHubSessions),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            _buildSessionTypePill("App", data.totalAppSessions),
+            _buildSessionTypePill("Direct", data.totalDirectSessions),
+            _buildSessionTypePill("Web", data.totalWebSessions),
+            _buildSessionTypePill("Hub", data.totalHubSessions),
+          ],
+        ),
       ],
     );
   }
 
   Widget _buildSessionTypePill(String type, int count) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 4),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         color: Colors.blue.withOpacity(0.1),
@@ -281,11 +401,5 @@ class _StatsPageState extends ConsumerState<StatsPage> {
         ],
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    // ref.read(stationStatsProvider.notifier).dispose();
-    super.dispose();
   }
 }
