@@ -1,6 +1,7 @@
 import 'package:cpu_management/core/constants/colors.dart';
 import 'package:cpu_management/core/constants/images.dart';
 import 'package:cpu_management/core/models/chargers/charging_station.dart';
+import 'package:cpu_management/screens/pages/chargers/sessions_details.dart';
 import 'package:cpu_management/screens/widget/connector_info_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,9 +10,9 @@ class ChargingDetailsCard extends ConsumerWidget {
   final ChargingStation station;
 
   const ChargingDetailsCard({
-    Key? key,
+    super.key,
     required this.station,
-  }) : super(key: key);
+  });
 
   List<Charger> getSortedChargers(List<Charger> chargers) {
     return List<Charger>.from(chargers)
@@ -146,16 +147,30 @@ class ChargingDetailsCard extends ConsumerWidget {
   Widget _buildChargersList(List<Charger> chargers) {
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      itemCount: chargers.length,
       itemBuilder: (context, index) {
+        final charger = chargers[index];
         return Padding(
           padding: const EdgeInsets.only(bottom: 12),
-          child: ConnectorInfoCard(
-            connector: chargers[index],
-            onSelected: false,
+          child: GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => SessionDetailsScreen(
+                    deviceId: charger.deviceId,
+                    connectorId: charger.connectorId,
+                  ),
+                ),
+              );
+            },
+            child: ConnectorInfoCard(
+              connector: charger,
+              onSelected: false,
+            ),
           ),
         );
       },
+      itemCount: chargers.length,
     );
   }
 }

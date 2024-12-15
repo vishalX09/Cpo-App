@@ -39,9 +39,10 @@ class CustomTabBar extends StatefulWidget {
   State<CustomTabBar> createState() => _CustomTabBarState();
 }
 
-class _CustomTabBarState extends State<CustomTabBar> with TickerProviderStateMixin {
+class _CustomTabBarState extends State<CustomTabBar>
+    with TickerProviderStateMixin {
   late TabController tabController;
-  String searchQuery = ""; // Variable to hold the search query
+  String searchQuery = "";
 
   @override
   void initState() {
@@ -60,7 +61,8 @@ class _CustomTabBarState extends State<CustomTabBar> with TickerProviderStateMix
           child: Column(
             children: [
               Card(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8)),
                 elevation: 2,
                 child: Container(
                   decoration: BoxDecoration(
@@ -163,7 +165,8 @@ class _CustomTabBarState extends State<CustomTabBar> with TickerProviderStateMix
                                 hintText: 'Search for session',
                                 prefixIcon: Icon(Icons.search),
                                 border: InputBorder.none,
-                                contentPadding: EdgeInsets.symmetric(vertical: 14),
+                                contentPadding:
+                                    EdgeInsets.symmetric(vertical: 14),
                               ),
                             ),
                           ),
@@ -194,10 +197,9 @@ class _CustomTabBarState extends State<CustomTabBar> with TickerProviderStateMix
                     child: Text(
                       "Showing all 2510 Sessions",
                       style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w400,
-                        color: ConstantColors.lightGrey2
-                      ),
+                          fontSize: 14,
+                          fontWeight: FontWeight.w400,
+                          color: ConstantColors.lightGrey2),
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -271,28 +273,27 @@ class _SessionCardState extends State<SessionCard> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      widget.deviceId,
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)
-                    ),
+                    Text(widget.deviceId,
+                        style: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.w500)),
                     Container(
-                      width: 145, 
+                      width: 145,
                       height: 24,
                       decoration: BoxDecoration(
-                        color: widget.isOngoingSession 
-                          ? Colors.red.withOpacity(0.1) 
-                          : ConstantColors.okBg.withOpacity(0.1), 
-                        borderRadius: BorderRadius.circular(64), 
+                        color: widget.isOngoingSession
+                            ? Colors.red.withOpacity(0.1)
+                            : ConstantColors.okBg.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(64),
                       ),
                       child: Center(
-                        child: Text(
-                          widget.startTime, 
-                          style: TextStyle(
-                            fontSize: 12, 
-                            fontWeight: FontWeight.w500,
-                            color: widget.isOngoingSession ? Colors.red : Colors.black,
-                          )
-                        ),
+                        child: Text(widget.startTime,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: widget.isOngoingSession
+                                  ? Colors.red
+                                  : Colors.black,
+                            )),
                       ),
                     ),
                   ],
@@ -304,7 +305,9 @@ class _SessionCardState extends State<SessionCard> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text("Earning", style: TextStyle(fontSize: 12, fontWeight: FontWeight.w400)),
+                        const Text("Earning",
+                            style: TextStyle(
+                                fontSize: 12, fontWeight: FontWeight.w400)),
                         const SizedBox(height: 4),
                         Text(
                           "₹${widget.earning}",
@@ -318,7 +321,9 @@ class _SessionCardState extends State<SessionCard> {
                     ),
                     Column(
                       children: [
-                        const Text("Energy", style: TextStyle(fontSize: 12, fontWeight: FontWeight.w400)),
+                        const Text("Energy",
+                            style: TextStyle(
+                                fontSize: 12, fontWeight: FontWeight.w400)),
                         const SizedBox(height: 4),
                         Text(
                           widget.energy,
@@ -332,9 +337,9 @@ class _SessionCardState extends State<SessionCard> {
                     ),
                     IconButton(
                       icon: Icon(
-                        isExpanded 
-                          ? Icons.expand_circle_down_sharp 
-                          : Icons.expand_circle_down,
+                        isExpanded
+                            ? Icons.expand_circle_down_sharp
+                            : Icons.expand_circle_down,
                       ),
                       onPressed: () {
                         setState(() {
@@ -363,28 +368,27 @@ class _SessionCardState extends State<SessionCard> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        widget.deviceId,
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)
-                      ),
+                      Text(widget.deviceId,
+                          style: const TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.w500)),
                       Container(
-                        width: 145, 
+                        width: 145,
                         height: 24,
                         decoration: BoxDecoration(
-                          color: widget.isOngoingSession 
-                            ? Colors.red.withOpacity(0.1) 
-                            : ConstantColors.okBg.withOpacity(0.1), 
-                          borderRadius: BorderRadius.circular(64), 
+                          color: widget.isOngoingSession
+                              ? Colors.red.withOpacity(0.1)
+                              : ConstantColors.okBg.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(64),
                         ),
                         child: Center(
-                          child: Text(
-                            widget.startTime, 
-                            style: TextStyle(
-                              fontSize: 12, 
-                              fontWeight: FontWeight.w500,
-                              color: widget.isOngoingSession ? Colors.red : Colors.black,
-                            )
-                          ),
+                          child: Text(widget.startTime,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                color: widget.isOngoingSession
+                                    ? Colors.red
+                                    : Colors.black,
+                              )),
                         ),
                       ),
                     ],
@@ -400,10 +404,9 @@ class _SessionCardState extends State<SessionCard> {
                             Text(
                               "Earning",
                               style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey,
-                                fontWeight: FontWeight.w400
-                              ),
+                                  fontSize: 12,
+                                  color: Colors.grey,
+                                  fontWeight: FontWeight.w400),
                             ),
                             SizedBox(height: 4),
                             Text(
@@ -459,10 +462,7 @@ class _SessionCardState extends State<SessionCard> {
           Text(
             label,
             style: const TextStyle(
-              fontSize: 12,
-              color: Colors.grey,
-              fontWeight: FontWeight.w400
-            ),
+                fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w400),
           ),
           const SizedBox(height: 4),
           Text(
